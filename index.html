@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scratch & Reveal Game</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #111;
+    font-family: 'Poppins', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+  }
+
+  h1 {
+    margin: 20px 0 10px;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    padding: 10px 20px;
+    border: none;
+    background: #1f2937;
+    color: #fff;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  button:hover {
+    background: #374151;
+    transform: scale(1.05);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 30px;
+    width: 95vw;
+    max-width: 500px;
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+  }
+
+  @media (max-width: 450px) {
+    .grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .circle {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    background: #000;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(250, 204, 21, 0.5);
+  }
+
+  .circle.active {
+    box-shadow: 0 0 25px #facc15;
+    transform: scale(1.08);
+  }
+
+  .circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    touch-action: pan-y;
+  }
+
+  .circle, .circle * {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>Scratch & Reveal</h1>
+<div class="buttons">
+  <button onclick="resetOverlay()">Reset Overlay</button>
+  <button onclick="shuffleImages()">Shuffle Images</button>
+</div>
+
+<div class="grid">
+  <!-- 20 circles -->
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+  <div class="circle"><img><canvas></canvas></div>
+</div>
+
+<script>
+const imagePool = [
+  "images/set1.jpeg","images/set2.jpeg","images/set3.jpeg","images/set4.jpeg","images/set5.jpeg",
+  "images/set6.jpeg","images/set7.jpeg","images/set8.jpeg","images/set9.jpeg","images/set10.jpeg",
+  "images/set11.jpeg","images/set12.jpeg","images/set13.jpeg","images/set14.jpeg","images/set15.jpeg",
+  "images/set16.jpeg","images/set17.jpeg","images/set18.jpeg","images/set19.jpeg","images/set20.jpeg"
+];
+
+const overlayColor = "#facc15";
+const circles = document.querySelectorAll(".circle");
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function setupCircles() {
+  shuffleImages();
+
+  circles.forEach((circle, index) => {
+    const canvas = circle.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = circle.querySelector("img");
+    let scratched = false;
+
+    function resizeCanvas() {
+      const size = circle.clientWidth;
+      canvas.width = size;
+      canvas.height = size;
+      if (!scratched) drawOverlay();
+    }
+
+    function drawOverlay() {
+      const size = canvas.width;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, size, size);
+      ctx.fillStyle = overlayColor;
+      ctx.fillRect(0, 0, size, size);
+      ctx.shadowColor = "rgba(0,0,0,0.4)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = "#fff";
+      ctx.font = `bold ${size/3}px Poppins`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(index + 1, size/2, size/2);
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    // scratch logic
+    let isScratching = false;
+    let touchStartX = 0, touchStartY = 0;
+
+    canvas.addEventListener("pointerdown", (e) => {
+      touchStartX = e.clientX;
+      touchStartY = e.clientY;
+      circles.forEach(c => c.classList.remove("active"));
+      circle.classList.add("active");
+      isScratching = true;
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isScratching) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(x, y, 25, 0, Math.PI * 2);
+      ctx.fill();
+      scratched = true;
+    });
+
+    canvas.addEventListener("pointerup", () => isScratching = false);
+    canvas.addEventListener("pointerleave", () => isScratching = false);
+
+    circle.resetOverlay = () => {
+      scratched = false;
+      drawOverlay();
+    };
+  });
+}
+
+function resetOverlay() {
+  circles.forEach(c => c.resetOverlay());
+}
+
+function shuffleImages() {
+  const shuffled = shuffle([...imagePool]);
+  circles.forEach((circle, i) => {
+    circle.querySelector("img").src = shuffled[i % shuffled.length];
+  });
+}
+
+setupCircles();
+</script>
+</body>
+</html>
